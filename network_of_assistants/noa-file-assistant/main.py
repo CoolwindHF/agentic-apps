@@ -136,11 +136,11 @@ async def amain(args):
     docs = SimpleDirectoryReader(input_dir=args.doc_dir).load_data()
     index = VectorStoreIndex.from_documents(docs, show_progress=True, streaming=False)
     
-    if len(docs) > 0:
-        # 打印前 500 个字符，看看读到了什么
-        log.info(f"--- DOCUMENT CONTENT PREVIEW ---\n{docs[0].text}\n--------------------------------")
-    else:
-        log.warning("--- NO CONTENT LOADED ---")
+    # if len(docs) > 0:
+    #     # 打印前 500 个字符，看看读到了什么
+    #     log.info(f"--- DOCUMENT CONTENT PREVIEW ---\n{docs[0].text}\n--------------------------------")
+    # else:
+    #     log.warning("--- NO CONTENT LOADED ---")
 
     qet = QueryEngineTool.from_defaults(
         index.as_query_engine(llm=llm, streaming=False, similarity_top_k=10),
