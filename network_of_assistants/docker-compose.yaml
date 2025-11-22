@@ -1,5 +1,15 @@
 services:
 
+  # otel-collector:
+  #   image: otel/opentelemetry-collector-contrib
+  #   networks:
+  #     - app_network
+  #   volumes:
+  #     - ./otel-collector/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml
+  #   ports:
+  #     - 4318:4318 # OTLP HTTP 接收器
+
+
   noa-slim:
     image: ghcr.io/agntcy/slim:0.3.15
     networks:
@@ -18,17 +28,18 @@ services:
       - app_network
     depends_on:
       - noa-slim
+      # - otel-collector
     volumes:
       - ./dir:/app/ads
     environment:
-      - MODERATOR_LLM_TYPE=openai
-      - MODERATOR_LLM_MODEL=gpt-4o
+      - MODERATOR_LLM_TYPE
+      - MODERATOR_LLM_MODEL
       - MODERATOR_LLM_BASE_URL
       - MODERATOR_LLM_API_KEY
       - SLIM_ENDPOINT=http://noa-slim:46357
       - AGENTS_DIR=/app/ads/datamodels
-      - WITH_OBS=True
-      - OTLP_HTTP_ENDPOINT=http://host.docker.internal:4318
+      - WITH_OBS=False
+      - OTLP_HTTP_ENDPOINT=http://otel-collector:4318
 
   noa-file-assistant:
     build:
@@ -39,21 +50,24 @@ services:
     depends_on:
       - noa-slim
       - noa-moderator
+      # - otel-collector
     volumes:
       - ./noa-file-assistant/files:/home/files
     environment:
-      - ASSISTANT_LLM_TYPE=openai
-      - ASSISTANT_LLM_MODEL=gpt-4o
+      - ASSISTANT_LLM_TYPE
+      - ASSISTANT_LLM_MODEL
       - ASSISTANT_LLM_BASE_URL
       - ASSISTANT_LLM_API_KEY
+      - ASSISTANT_RAG_TYPE
       - ASSISTANT_RAG_BASE_URL
+      - ASSISTANT_RAG_MODEL
       - ASSISTANT_RAG_API_KEY
       - SLIM_ENDPOINT=http://noa-slim:46357
       - ASSISTANT_ID=noa-file-assistant
       - ASSISTANT_DOC_DIR=/home/files
-      - FILE_URL=https://arxiv.org/pdf/2410.10934?
-      - WITH_OBS=True
-      - OTLP_HTTP_ENDPOINT=http://host.docker.internal:4318
+      - FILE_URL=https://arxiv.org/pdf/2511.16604
+      - WITH_OBS=False
+      - OTLP_HTTP_ENDPOINT=http://otel-collector:4318
 
   noa-web-surfer:
     build:
@@ -64,15 +78,16 @@ services:
     depends_on:
       - noa-slim
       - noa-moderator
+      # - otel-collector
     environment:
-      - WEB_SURFER_LLM_TYPE=openai
-      - WEB_SURFER_LLM_MODEL=gpt-4o
-      - WEB_SURFER_LLM_BASE_URL=https://api.openai.com
+      - WEB_SURFER_LLM_TYPE
+      - WEB_SURFER_LLM_MODEL
+      - WEB_SURFER_LLM_BASE_URL
       - WEB_SURFER_LLM_API_KEY
       - SLIM_ENDPOINT=http://noa-slim:46357
       - WEB_SURFER_ID=noa-web-surfer-assistant
-      - WITH_OBS=True
-      - OTLP_HTTP_ENDPOINT=http://host.docker.internal:4318
+      - WITH_OBS=False
+      - OTLP_HTTP_ENDPOINT=http://otel-collector:4318
 
   noa-math-assistant:
     build:
@@ -83,15 +98,16 @@ services:
     depends_on:
       - noa-slim
       - noa-moderator
+      # - otel-collector
     environment:
-      - MATH_ASSISTANT_LLM_TYPE=openai
-      - MATH_ASSISTANT_LLM_MODEL=gpt-4o
+      - MATH_ASSISTANT_LLM_TYPE
+      - MATH_ASSISTANT_LLM_MODEL
       - MATH_ASSISTANT_LLM_BASE_URL
       - MATH_ASSISTANT_LLM_API_KEY
       - SLIM_ENDPOINT=http://noa-slim:46357
       - MATH_ASSISTANT_ID=noa-math-assistant
-      - WITH_OBS=True
-      - OTLP_HTTP_ENDPOINT=http://host.docker.internal:4318
+      - WITH_OBS=False
+      - OTLP_HTTP_ENDPOINT=http://otel-collector:4318
 
   noa-user-proxy:
     build:
@@ -111,6 +127,7 @@ services:
       - noa-file-assistant
       - noa-web-surfer
       - noa-math-assistant
+      # - otel-collector
 
 networks:
   app_network:

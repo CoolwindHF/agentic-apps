@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.13"
 resolution-markers = [
     "platform_python_implementation != 'PyPy'",
@@ -1147,6 +1147,18 @@ wheels = [
 ]
 
 [[package]]
+name = "llama-index-embeddings-nvidia"
+version = "0.3.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "llama-index-core" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c6/94/36f8d2c8409e849ba7650ac6810625234530e6ca8b9236ef0c79b2572fea/llama_index_embeddings_nvidia-0.3.4.tar.gz", hash = "sha256:ec68a4c94364afe7059d55a65cd30ef237f0e6794169f1c6d402cbea899cdb3b", size = 8031, upload-time = "2025-07-01T23:07:06.635Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0a/9e/8e5ad808fbfa2adef6b0a2235aa6991e59331207059fe34a9bee4fb2475d/llama_index_embeddings_nvidia-0.3.4-py3-none-any.whl", hash = "sha256:737c244087a813a94f555bbec00e9ffde0dcb74638a1cb96fd550f5d6001964e", size = 8042, upload-time = "2025-07-01T23:07:05.637Z" },
+]
+
+[[package]]
 name = "llama-index-embeddings-openai"
 version = "0.3.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1510,6 +1522,7 @@ source = { editable = "noa-file-assistant" }
 dependencies = [
     { name = "ioa-observe-sdk" },
     { name = "llama-index" },
+    { name = "llama-index-embeddings-nvidia" },
     { name = "llama-index-llms-azure-openai" },
     { name = "llama-index-llms-ollama" },
     { name = "llama-index-llms-openai-like" },
@@ -1521,6 +1534,7 @@ dependencies = [
 requires-dist = [
     { name = "ioa-observe-sdk", specifier = ">=1.0.12" },
     { name = "llama-index", specifier = ">=0.12.29" },
+    { name = "llama-index-embeddings-nvidia" },
     { name = "llama-index-llms-azure-openai", specifier = ">=0.3.2" },
     { name = "llama-index-llms-ollama", specifier = ">=0.5.4" },
     { name = "llama-index-llms-openai-like", specifier = ">=0.3.4" },

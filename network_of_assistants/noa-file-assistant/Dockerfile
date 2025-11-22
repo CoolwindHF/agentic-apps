@@ -35,6 +35,10 @@ RUN useradd -m user
 # Copy venv from builder with just the dependencies we need + our package
 COPY --from=builder --chown=user:user /app /app
 
+RUN mkdir -p /home/files
+RUN chown user:user /home/files
+RUN chmod 777 /home/files
+
 USER user
 
 CMD ["/app/bin/noa-file-assistant"]

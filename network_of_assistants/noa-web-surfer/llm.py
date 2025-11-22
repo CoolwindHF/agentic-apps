@@ -34,6 +34,13 @@ def load_llm(env_prefix):
             timeout=model_config.request_timeout,
             max_tokens=model_config.max_token,
             temperature=model_config.temperature,
+            model_info={
+                "json_output": False,
+                "function_calling": True,
+                "vision": False,
+                "family": "unknown",
+                "structured_output": False,
+            }
         )
     elif model_config.type == "azure":
         model = AzureAIChatCompletionClient(

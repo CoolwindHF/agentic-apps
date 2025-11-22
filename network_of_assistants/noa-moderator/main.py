@@ -60,7 +60,8 @@ async def main(args):
         # Decode the message from bytes to string
 
         if chat_history == []:
-            session_start()
+            if with_obs:
+                session_start()
             moderator_agent.init_run()
 
         decoded_message = message.decode("utf-8")
@@ -91,6 +92,8 @@ async def main(args):
 
             except OutputParserException as e:
                 log.error(f"Wrong format from {args.id}: {e}")
+                log.error(f"Exception obsercvation {e.observation}")
+                log.error(f"Exception llm_output {e.llm_output}")
 
                 answer = {
                     "type": "ChatMessage",

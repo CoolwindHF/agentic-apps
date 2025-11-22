@@ -18,6 +18,7 @@ from llama_index.llms.azure_openai import AzureOpenAI
 from llama_index.llms.openai_like import OpenAILike
 
 from llama_index.embeddings.openai import OpenAIEmbedding
+from llama_index.embeddings.nvidia import  NVIDIAEmbedding
 from llama_index.core import Settings
 
 from slim import SLIM
@@ -117,18 +118,32 @@ async def amain(args):
             api_key=args.rag_api_key,
             api_base=args.rag_base_url,
         )
+    elif args.rag_type == "nvidia":
+        embed_model = NVIDIAEmbedding(
+            model=args.rag_model,
+            api_key=args.rag_api_key,
+            api_base=args.rag_base_url,
+        )
     else:
         raise Exception(f"RAG type {args.rag_type} is not supported. Only supported type is openai.")
 
     Settings.embed_model = embed_model
+    Settings.chunk_size = 500
+    Settings.chunk_overlap = 200
 
     download_pdf(args.file_url, args.doc_dir)
 
     docs = SimpleDirectoryReader(input_dir=args.doc_dir).load_data()
     index = VectorStoreIndex.from_documents(docs, show_progress=True, streaming=False)
+    
+    if len(docs) > 0:
+        # 打印前 500 个字符，看看读到了什么
+        log.info(f"--- DOCUMENT CONTENT PREVIEW ---\n{docs[0].text}\n--------------------------------")
+    else:
+        log.warning("--- NO CONTENT LOADED ---")
 
     qet = QueryEngineTool.from_defaults(
-        index.as_query_engine(llm=llm, streaming=False),
+        index.as_query_engine(llm=llm, streaming=False, similarity_top_k=10),
         name="documentation_search",
         description="Searches the available documentation",
     )
