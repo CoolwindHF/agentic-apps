@@ -1,0 +1,169 @@
+services:
+
+  noa-slim:
+    image: ghcr.io/agntcy/slim:0.6.1
+    networks:
+      - app_network
+    ports:
+      - "46357:46357"
+    volumes:
+      - ./noa-slim/slim-config.yaml:/config.yaml
+    command: ["/slim", "--config", "/config.yaml"]
+    tty: true
+
+  noa-moderator:
+    build:
+      context: .
+      dockerfile: noa-moderator/Dockerfile
+    networks:
+      - app_network
+    depends_on:
+      - noa-slim
+      - noa-file-assistant
+      - noa-web-surfer-assistant
+      - noa-math-assistant
+      - noa-user-proxy
+    volumes:
+      - ./dir:/app/ads
+    deploy:
+      mode: replicated
+      replicas: 10
+    environment:
+      - OBSERVE_SUPPRESS_WARNINGS
+      - MODERATOR_INVITE
+      - MODERATOR_LLM_TYPE
+      - MODERATOR_LLM_MODEL
+      - MODERATOR_LLM_BASE_URL
+      - MODERATOR_LLM_API_KEY
+      - SLIM_ENDPOINT=http://noa-slim:46357
+      - AGENTS_DIR=/app/ads/datamodels
+      - WITH_OBS=False
+      - OTLP_HTTP_ENDPOINT=http://otel-collector:4318
+    tty: true
+
+  noa-file-assistant:
+    build:
+      context: .
+      dockerfile: noa-file-assistant/Dockerfile
+    networks:
+      - app_network
+    depends_on:
+      - noa-slim
+      # - noa-moderator
+    volumes:
+      - ./noa-file-assistant/files:/home/files
+    deploy:
+      mode: replicated
+      replicas: 10
+    environment:
+      - OBSERVE_SUPPRESS_WARNINGS
+      - ASSISTANT_LLM_TYPE
+      - ASSISTANT_LLM_MODEL
+      - ASSISTANT_LLM_BASE_URL
+      - ASSISTANT_LLM_API_KEY
+      - ASSISTANT_RAG_TYPE
+      - ASSISTANT_RAG_BASE_URL
+      - ASSISTANT_RAG_MODEL
+      - ASSISTANT_RAG_API_KEY
+      - SLIM_ENDPOINT=http://noa-slim:46357
+      - ASSISTANT_ID=noa-file-assistant
+      - ASSISTANT_DOC_DIR=/home/files
+      - FILE_URL=https://arxiv.org/pdf/2511.16604
+      - WITH_OBS=False
+      - OTLP_HTTP_ENDPOINT=http://otel-collector:4318
+    tty: true
+
+  noa-web-surfer-assistant:
+    build:
+      context: .
+      dockerfile: noa-web-surfer/Dockerfile
+    networks:
+      - app_network
+    depends_on:
+      - noa-slim
+      # - noa-moderator
+    deploy:
+      mode: replicated
+      replicas: 10
+    environment:
+      - OBSERVE_SUPPRESS_WARNINGS
+      - WEB_SURFER_LLM_TYPE
+      - WEB_SURFER_LLM_MODEL
+      - WEB_SURFER_LLM_BASE_URL
+      - WEB_SURFER_LLM_API_KEY
+      - SLIM_ENDPOINT=http://noa-slim:46357
+      - WEB_SURFER_ID=noa-web-surfer-assistant
+      - WITH_OBS=False
+      - OTLP_HTTP_ENDPOINT=http://otel-collector:4318
+    tty: true
+
+  noa-math-assistant:
+    build:
+      context: .
+      dockerfile: noa-math-assistant/Dockerfile
+    networks:
+      - app_network
+    depends_on:
+      - noa-slim
+      # - noa-moderator
+    deploy:
+      mode: replicated
+      replicas: 10
+    environment:
+      - OBSERVE_SUPPRESS_WARNINGS
+      - MATH_ASSISTANT_LLM_TYPE
+      - MATH_ASSISTANT_LLM_MODEL
+      - MATH_ASSISTANT_LLM_BASE_URL
+      - MATH_ASSISTANT_LLM_API_KEY
+      - SLIM_ENDPOINT=http://noa-slim:46357
+      - MATH_ASSISTANT_ID=noa-math-assistant
+      - WITH_OBS=False
+      - OTLP_HTTP_ENDPOINT=http://otel-collector:4318
+    tty: true
+
+  noa-user-proxy:
+    build:
+      context: .
+      dockerfile: noa-user-proxy/Dockerfile
+    networks:
+      - app_network
+    # ports:
+    #   - "8000:8000"
+    expose:
+      - "8000"
+    environment:
+      - OBSERVE_SUPPRESS_WARNINGS
+      - SLIM_ENDPOINT=http://noa-slim:46357
+    stdin_open: true
+    tty: true
+    depends_on:
+      - noa-slim
+      # - noa-moderator
+      # - noa-file-assistant
+      # - noa-web-surfer
+      # - noa-math-assistant
+    deploy:
+      mode: replicated
+      replicas: 10
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8000/health\")' || exit 1"]
+      interval: 10m
+      timeout: 10s
+      start_period: 30s
+      retries: 5
+    
+  nginx-lb:
+      image: nginx:latest
+      networks:
+        - app_network
+      ports:
+        - "8000:80"
+      volumes:
+        - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      depends_on:
+        noa-user-proxy:
+          condition: service_healthy
+    
+networks:
+  app_network:
+    driver: bridge
