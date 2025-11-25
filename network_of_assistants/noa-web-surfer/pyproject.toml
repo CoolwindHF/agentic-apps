@@ -3,7 +3,7 @@ name = "noa-web-surfer"
 version = "0.1.0"
 description = "An assistant which can perform searches on the web and extract information."
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 dependencies = [
         "slim",
         "autogen>=0.8.6",

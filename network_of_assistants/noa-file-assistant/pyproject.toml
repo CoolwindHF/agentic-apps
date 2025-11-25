@@ -3,7 +3,7 @@ name = "noa-file-assistant"
 version = "0.1.0"
 description = "An assistant agent specialized in retrieving information from files."
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 dependencies = [
     "slim",
     "llama-index>=0.12.29",

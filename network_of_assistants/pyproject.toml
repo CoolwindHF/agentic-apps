@@ -3,7 +3,13 @@ name = "network-of-assistants"
 version = "0.1.0"
 description = "NoA app"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12"
+dependencies = [
+    "langchain==0.3.26",
+    "llama-index==0.12.44",
+    "pydantic==2.11.7",
+    "slim-bindings==0.6.1",
+]
 
 [tool.uv.workspace]
 members = ["noa-file-assistant", "noa-slim", "noa-user-proxy", "noa-moderator", "noa-web-surfer", "noa-math-assistant"]

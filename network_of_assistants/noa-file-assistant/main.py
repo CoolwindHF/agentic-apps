@@ -130,6 +130,16 @@ async def amain(args):
     Settings.embed_model = embed_model
     Settings.chunk_size = 500
     Settings.chunk_overlap = 200
+    
+    slim = SLIM(
+        slim_endpoint=args.slim_endpoint,
+        local_id=args.assistant_id,
+        app_id=int(os.environ["ASSISTANT_ID"]),
+        shared_space="chat",
+        opentelemetry_endpoint=os.getenv("OTLP_GRPC_ENDPOINT"),
+    )
+
+    await slim.init()
 
     download_pdf(args.file_url, args.doc_dir)
 
@@ -148,15 +158,6 @@ async def amain(args):
         description="Searches the available documentation",
     )
     agent = ReActAgent(llm=llm, tools=[qet])
-
-    slim = SLIM(
-        slim_endpoint=args.slim_endpoint,
-        local_id=args.assistant_id,
-        shared_space="chat",
-        opentelemetry_endpoint=os.getenv("OTLP_GRPC_ENDPOINT"),
-    )
-
-    await slim.init()
 
     with_obs = os.getenv("WITH_OBS", "False").lower() == "true"
     if with_obs:
@@ -202,6 +203,33 @@ async def amain(args):
     await slim.receive(callback=on_message_received)
     await slim.receive_task
 
+import socket
+def get_replica_id(service_name):
+    try:
+
+        my_hostname = socket.gethostname()
+        my_ip = socket.gethostbyname(my_hostname)
+        
+        results = socket.getaddrinfo(service_name, None)
+        
+        all_ips = set()
+        for res in results:
+            sockaddr = res[4]
+            ip = sockaddr[0]
+            all_ips.add(ip)
+            
+
+        sorted_ips = sorted(list(all_ips))
+        print(f"All discovered IPs: {sorted_ips}")
+        
+
+        if my_ip in sorted_ips:
+            my_id = sorted_ips.index(my_ip) + 1
+            return my_id
+    except Exception as e:
+        print(f"Error: {e}")
+    
+    return 1
 
 def run():
     parser = argparse.ArgumentParser(description="File reader assistant.")
@@ -232,6 +260,10 @@ def run():
     parser.add_argument("--file-url", type=str, default=os.getenv("FILE_URL"), help="File URL to download and analyze")
 
     args = parser.parse_args()
+
+    id = get_replica_id(args.assistant_id)
+    print(f"Replica ID: {id}")
+    os.environ["ASSISTANT_ID"] = str(id)
 
     import asyncio
 

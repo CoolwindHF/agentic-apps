@@ -31,8 +31,10 @@ async def main(args):
     slim = SLIM(
         slim_endpoint=args.slim_endpoint,
         local_id=args.id,
+        app_id=int(os.environ["ASSISTANT_ID"]),
         shared_space="chat",
         opentelemetry_endpoint=os.getenv("OTLP_GRPC_ENDPOINT"),
+        invite_list=args.invites,
     )
     await slim.init()
 
@@ -116,6 +118,33 @@ async def main(args):
     await slim.receive(callback=on_message_received)
     await slim.receive_task
 
+import socket
+def get_replica_id(service_name):
+    try:
+
+        my_hostname = socket.gethostname()
+        my_ip = socket.gethostbyname(my_hostname)
+        
+        results = socket.getaddrinfo(service_name, None)
+        
+        all_ips = set()
+        for res in results:
+            sockaddr = res[4]
+            ip = sockaddr[0]
+            all_ips.add(ip)
+            
+
+        sorted_ips = sorted(list(all_ips))
+        print(f"All discovered IPs: {sorted_ips}")
+        
+
+        if my_ip in sorted_ips:
+            my_id = sorted_ips.index(my_ip) + 1
+            return my_id
+    except Exception as e:
+        print(f"Error: {e}")
+    
+    return 1
 
 def run():
     import asyncio
@@ -139,7 +168,18 @@ def run():
         default=os.getenv("MODERATOR_ID", "noa-moderator"),
         help="Moderator ID (e.g., noa-moderator)",
     )
+    parser.add_argument(
+        "--invites",
+        nargs="*",
+        type=str,
+        default=os.getenv("MODERATOR_INVITE", "").split(","),
+        help="List of agents to invite",
+    )
     args = parser.parse_args()
+
+    id = get_replica_id(args.id)
+    print(f"Replica ID: {id}")
+    os.environ["ASSISTANT_ID"] = str(id)
 
     # Run the main function
     asyncio.run(main(args))

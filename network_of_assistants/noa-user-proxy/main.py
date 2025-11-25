@@ -40,7 +40,7 @@ def convert_to_title_case(input_string):
     capitalized_words = [word.capitalize() for word in words]
     return " ".join(capitalized_words)
 
-
+global_lock = asyncio.Lock()
 request_to_speak_event = asyncio.Event()
 app = FastAPI()
 
@@ -105,21 +105,26 @@ async def send_message(message: MessageModel):
     if not slim:
         raise HTTPException(status_code=500, detail="SLIM not initialized.")
 
+    async with global_lock:
     # Prepare message to send
-    message_data = {
-        "type": "ChatMessage",
-        "author": "noa-user-proxy",
-        "message": message.message.strip().lower(),
-    }
-
-    # Clear the event and send the message
-    request_to_speak_event.clear()
-    await slim.publish(msg=json.dumps(message_data).encode("utf-8"))
-
-    # Wait for the next request-to-speak signal
-    await request_to_speak_event.wait()
-
-    return {"answer": last_slim_answer}
+        message_data = {
+            "type": "ChatMessage",
+            "author": "noa-user-proxy",
+            "message": message.message.strip().lower(),
+        }
+    
+        # Clear the event and send the message
+        request_to_speak_event.clear()
+        
+        global last_slim_answer
+        last_slim_answer = None
+        
+        await slim.publish(msg=json.dumps(message_data).encode("utf-8"))
+    
+        # Wait for the next request-to-speak signal
+        await request_to_speak_event.wait()
+    
+        return {"answer": last_slim_answer}
 
 
 @app.get("/health")
@@ -134,6 +139,7 @@ async def initialize_slim(args):
     slim = SLIM(
         slim_endpoint=args.endpoint,
         local_id="noa-user-proxy",
+        app_id=int(os.environ["ASSISTANT_ID"]),
         shared_space="chat",
         opentelemetry_endpoint=os.getenv("OTLP_GRPC_ENDPOINT"),
     )
@@ -157,6 +163,34 @@ async def initialize_slim(args):
     asyncio.create_task(slim.receive(callback=command_callback))
 
 
+import socket
+def get_replica_id(service_name):
+    try:
+
+        my_hostname = socket.gethostname()
+        my_ip = socket.gethostbyname(my_hostname)
+        
+        results = socket.getaddrinfo(service_name, None)
+        
+        all_ips = set()
+        for res in results:
+            sockaddr = res[4]
+            ip = sockaddr[0]
+            all_ips.add(ip)
+            
+
+        sorted_ips = sorted(list(all_ips))
+        print(f"All discovered IPs: {sorted_ips}")
+        
+
+        if my_ip in sorted_ips:
+            my_id = sorted_ips.index(my_ip) + 1
+            return my_id
+    except Exception as e:
+        print(f"Error: {e}")
+    
+    return 1
+
 def run():
     """Parse arguments, initialize SLIM, and run the FastAPI server."""
     parser = argparse.ArgumentParser(description="Start SLIM FastAPI interface.")
@@ -173,6 +207,10 @@ def run():
         help="Server port (default 8000)",
     )
     args = parser.parse_args()
+
+    id = get_replica_id("noa-user-proxy")
+    print(f"Replica ID: {id}")
+    os.environ["ASSISTANT_ID"] = str(id)
 
     # Use asyncio.run() for the initialization of SLIM and FastAPI server
     async def start_server():

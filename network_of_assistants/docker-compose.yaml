@@ -11,7 +11,7 @@ services:
 
 
   noa-slim:
-    image: ghcr.io/agntcy/slim:0.3.15
+    image: ghcr.io/agntcy/slim:0.6.1
     networks:
       - app_network
     ports:
@@ -19,6 +19,7 @@ services:
     volumes:
       - ./noa-slim/slim-config.yaml:/config.yaml
     command: ["/slim", "--config", "/config.yaml"]
+    tty: true
 
   noa-moderator:
     build:
@@ -28,18 +29,24 @@ services:
       - app_network
     depends_on:
       - noa-slim
+      - noa-file-assistant
+      - noa-web-surfer
+      - noa-math-assistant
       # - otel-collector
     volumes:
       - ./dir:/app/ads
     environment:
+      - OBSERVE_SUPPRESS_WARNINGS
       - MODERATOR_LLM_TYPE
       - MODERATOR_LLM_MODEL
       - MODERATOR_LLM_BASE_URL
       - MODERATOR_LLM_API_KEY
+      - MODERATOR_INVITE
       - SLIM_ENDPOINT=http://noa-slim:46357
       - AGENTS_DIR=/app/ads/datamodels
       - WITH_OBS=False
       - OTLP_HTTP_ENDPOINT=http://otel-collector:4318
+    tty: true
 
   noa-file-assistant:
     build:
@@ -49,11 +56,12 @@ services:
       - app_network
     depends_on:
       - noa-slim
-      - noa-moderator
+      # - noa-moderator
       # - otel-collector
     volumes:
       - ./noa-file-assistant/files:/home/files
     environment:
+      - OBSERVE_SUPPRESS_WARNINGS
       - ASSISTANT_LLM_TYPE
       - ASSISTANT_LLM_MODEL
       - ASSISTANT_LLM_BASE_URL
@@ -68,8 +76,9 @@ services:
       - FILE_URL=https://arxiv.org/pdf/2511.16604
       - WITH_OBS=False
       - OTLP_HTTP_ENDPOINT=http://otel-collector:4318
+    tty: true
 
-  noa-web-surfer:
+  noa-web-surfer-assistant:
     build:
       context: .
       dockerfile: noa-web-surfer/Dockerfile
@@ -77,9 +86,10 @@ services:
       - app_network
     depends_on:
       - noa-slim
-      - noa-moderator
+      # - noa-moderator
       # - otel-collector
     environment:
+      - OBSERVE_SUPPRESS_WARNINGS
       - WEB_SURFER_LLM_TYPE
       - WEB_SURFER_LLM_MODEL
       - WEB_SURFER_LLM_BASE_URL
@@ -97,9 +107,10 @@ services:
       - app_network
     depends_on:
       - noa-slim
-      - noa-moderator
+      # - noa-moderator
       # - otel-collector
     environment:
+      - OBSERVE_SUPPRESS_WARNINGS
       - MATH_ASSISTANT_LLM_TYPE
       - MATH_ASSISTANT_LLM_MODEL
       - MATH_ASSISTANT_LLM_BASE_URL
@@ -108,6 +119,7 @@ services:
       - MATH_ASSISTANT_ID=noa-math-assistant
       - WITH_OBS=False
       - OTLP_HTTP_ENDPOINT=http://otel-collector:4318
+    tty: true
 
   noa-user-proxy:
     build:
@@ -118,15 +130,16 @@ services:
     ports:
       - "8000:8000"
     environment:
+      - OBSERVE_SUPPRESS_WARNINGS
       - SLIM_ENDPOINT=http://noa-slim:46357
     stdin_open: true
     tty: true
     depends_on:
       - noa-slim
-      - noa-moderator
-      - noa-file-assistant
-      - noa-web-surfer
-      - noa-math-assistant
+      # - noa-moderator
+      # - noa-file-assistant
+      # - noa-web-surfer
+      # - noa-math-assistant
       # - otel-collector
 
 networks:
